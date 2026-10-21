@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UNO! - Tú & Yo 🎴</title>
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase Compat SDKs (Cero compilación, funciona en cualquier navegador) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <!-- ============================================== -->
+  <!-- PANTALLA DE BLOQUEO PRIVADO (CANDADO DE PAREJA) -->
+  <!-- ============================================== -->
+  <div id="screen-lock" class="screen-overlay">
+    <div class="welcome-card">
+      <div class="welcome-logo">🔒</div>
+      <h2>Acceso Privado</h2>
+      <p>Este espacio es exclusivo para nosotros dos. Ingresa la clave secreta para entrar:</p>
+
+      <form id="form-lock" onsubmit="return false;">
+        <div class="input-group">
+          <label for="input-lock-pass">Contraseña Secreta:</label>
+          <input type="password" id="input-lock-pass" class="custom-input" placeholder="••••••" maxlength="16" autofocus autocomplete="current-password">
+        </div>
+        <div id="lock-error-msg" class="lock-error-msg hidden">Contraseña incorrecta ❌</div>
+        <button id="btn-unlock" type="submit" class="btn-primary" style="margin-top: 14px;">Entrar a Jugar 💖</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Encabezado Superior -->
+  <header class="app-header">
+    <div class="logo-container">
+      <div class="uno-badge">UNO!</div>
+      <div class="app-title">Tú & Yo 💖</div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-sound-toggle" class="icon-btn" title="Alternar Sonido">🔊</button>
+    </div>
+  </header>
+
+  <!-- Tablero de Juego Principal -->
+  <main class="game-table">
+
+    <!-- Área del Oponente (Arriba) -->
+    <section class="opponent-area">
+      <div id="opponent-pill" class="player-info-pill">
+        <span id="opponent-avatar" class="player-avatar-icon avatar-animated">💌</span>
+        <span id="opponent-name" class="player-name">Esperando conexión...</span>
+        <span class="card-count-badge">🎴 <span id="opponent-card-count">0</span></span>
+        <span id="opponent-score" class="score-badge">★ 0</span>
+      </div>
+      <div id="opponent-cards-fan" class="opponent-cards-fan"></div>
+    </section>
+
+    <!-- Área Central: Mazo, Pozo y Color Activo -->
+    <section class="center-arena">
+      <!-- Mazo para robar -->
+      <div class="pile-container">
+        <div id="draw-pile" class="draw-pile-card" title="Toca para robar una carta">
+          <div class="uno-logo-text">UNO</div>
+        </div>
+        <span class="pile-label">Robar</span>
+      </div>
+
+      <!-- Pozo de Descarte -->
+      <div class="pile-container">
+        <div class="discard-slot">
+          <div id="active-color-badge" class="active-color-indicator">Rojo</div>
+          <div id="discard-slot"></div>
+        </div>
+        <span class="pile-label">Pozo</span>
+      </div>
+
+      <div id="action-status-banner" class="action-status-banner">Crea o únete a una sala para jugar</div>
+    </section>
+
+    <!-- Área del Jugador Principal (Abajo) -->
+    <section class="player-area">
+      <div class="player-controls-bar">
+        <button id="btn-shout-uno" class="uno-shout-btn hidden">¡UNO!</button>
+        <button id="btn-pass-turn" class="pass-turn-btn hidden">Pasar Turno</button>
+      </div>
+
+      <div id="player-pill" class="player-info-pill">
+        <span id="player-avatar" class="player-avatar-icon avatar-animated">🐱</span>
+        <span id="player-name" class="player-name">Tú</span>
+        <span class="card-count-badge">🎴 <span id="player-card-count">0</span></span>
+        <span id="player-score" class="score-badge">★ 0</span>
+      </div>
+
+      <!-- Abanico de Cartas Propias -->
+      <div class="player-hand-scroll">
+        <div id="player-hand-cards" class="player-hand-cards"></div>
+      </div>
+    </section>
+
+    <!-- Barra de Reacciones para Pareja -->
+    <aside class="reactions-bar">
+      <button class="reaction-btn" data-emoji="❤️" title="Amor">❤️</button>
+      <button class="reaction-btn" data-emoji="🥺" title="Piedad">🥺</button>
+      <button class="reaction-btn" data-emoji="😂" title="Risa">😂</button>
+      <button class="reaction-btn" data-emoji="😈" title="Maldad">😈</button>
+      <button class="reaction-btn" data-emoji="👑" title="Corona">👑</button>
+      <button class="reaction-btn" data-emoji="💥" title="Golpe">💥</button>
+    </aside>
+
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODALES Y VENTANAS FLOTANTES                   -->
+  <!-- ============================================== -->
+
+  <!-- Modal 1: Bienvenida / Crear o Unirse -->
+  <div id="screen-connect" class="screen-overlay hidden">
+    <div class="welcome-card">
+      <div class="welcome-logo">🎴</div>
+      <h2>UNO! Para Dos</h2>
+      <p>Partidas privadas en tiempo real sin servidores de pago. Hecho con amor.</p>
+
+      <!-- Selector de Avatar Tierno -->
+      <div class="avatar-select-container">
+        <div class="avatar-select-header">
+          <label class="avatar-select-label">Elige tu personaje:</label>
+          <button id="btn-random-avatar" class="btn-dice-random" title="Elegir personaje aleatorio">🎲 Aleatorio</button>
+        </div>
+        <div id="avatar-picker-grid" class="avatar-picker-grid"></div>
+      </div>
+
+      <div class="input-group">
+        <label for="input-name">Tu Nombre o Apodo:</label>
+        <input type="text" id="input-name" class="custom-input" placeholder="Ej: Sebas o Mi Amor" value="Sebas" maxlength="15">
+      </div>
+
+      <div class="input-group">
+        <label for="input-room">Código de Sala (para unirte):</label>
+        <input type="text" id="input-room" class="custom-input" placeholder="Ej: AMOR1" maxlength="8">
+      </div>
+
+      <button id="btn-create-room" class="btn-primary">Crear Nueva Partida</button>
+      <button id="btn-join-room" class="btn-secondary">Unirme a una Sala Existente</button>
+    </div>
+  </div>
+
+  <!-- Modal 2: Esperando a la Pareja -->
+  <div id="screen-waiting" class="screen-overlay hidden">
+    <div class="welcome-card">
+      <div class="welcome-logo">💌</div>
+      <h2>Esperando a tu Pareja</h2>
+      <p>Comparte este enlace con ella para que se una directamente desde su celular o PC:</p>
+
+      <div class="share-box">
+        <span id="share-link-text" class="share-link-text">https://...</span>
+      </div>
+
+      <button id="btn-copy-link" class="btn-secondary" style="margin-bottom: 14px;">Copiar Enlace</button>
+      
+      <div>
+        <span class="pulse-loader"></span>
+        <span style="font-size: 14px; color: #94a3b8;">Esperando que ingrese...</span>
+      </div>
+
+      <button id="btn-start-game" class="btn-primary hidden" style="margin-top: 18px;">Comenzar Juego</button>
+    </div>
+  </div>
+
+  <!-- Modal 3: Selector de Color para Comodines -->
+  <div id="modal-color-picker" class="screen-overlay hidden">
+    <div class="welcome-card">
+      <h2>Elige el Color</h2>
+      <p>Selecciona qué color continuará en juego:</p>
+      <div class="color-picker-grid">
+        <button class="color-choice-btn btn-red" data-color="red"></button>
+        <button class="color-choice-btn btn-blue" data-color="blue"></button>
+        <button class="color-choice-btn btn-green" data-color="green"></button>
+        <button class="color-choice-btn btn-yellow" data-color="yellow"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Fin de Ronda / Ganador -->
+  <div id="modal-winner" class="screen-overlay hidden">
+    <div class="welcome-card">
+      <div id="winner-avatar-display" class="winner-avatar avatar-animated">🏆</div>
+      <h2 id="winner-name-text">¡Ganaste la Ronda!</h2>
+      <p>Las cartas se han terminado. ¿Listos para la revancha?</p>
+      <button id="btn-rematch" class="btn-primary">Jugar Revancha</button>
+    </div>
+  </div>
+
+  <!-- Modal 5: Configuración de Firebase (Fácil y sin tocar código) -->
+  <div id="screen-config" class="screen-overlay hidden">
+    <div class="welcome-card">
+      <h2>Configurar Firebase</h2>
+      <p>Pega aquí el objeto de configuración de tu proyecto gratis de Firebase (Spark):</p>
+      <textarea id="input-config-json" class="config-textarea" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "uno-pareja.firebaseapp.com",
+  "databaseURL": "https://uno-pareja-default-rtdb.firebaseio.com",
+  "projectId": "uno-pareja"
+}'></textarea>
+      <button id="btn-save-config" class="btn-primary">Guardar Credenciales</button>
+      <button id="btn-close-config" class="btn-secondary">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Scripts del Juego -->
+  <script src="sounds.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
